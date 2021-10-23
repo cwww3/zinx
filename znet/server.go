@@ -11,6 +11,7 @@ type Server struct {
 	IPVersion string
 	IP        string
 	Port      int
+	Router    ziface.IRouter
 }
 
 func NewServer(name string) ziface.IServer {
@@ -43,10 +44,7 @@ func (s *Server) Start() {
 			fmt.Println("accept err", err)
 			continue
 		}
-		connection := NewConnection(conn, connID, func(conn *net.TCPConn, data []byte, cnt int) (err error) {
-			_, err = conn.Write(data[:cnt])
-			return err
-		})
+		connection := NewConnection(conn, connID, s.Router)
 		connID++
 		go connection.Start()
 	}
@@ -55,7 +53,12 @@ func (s *Server) Start() {
 func (s *Server) Stop() {
 
 }
+
 func (s *Server) Serve() {
 	defer s.Stop()
 	s.Start()
+}
+
+func (s *Server) AddRouter(router ziface.IRouter) {
+	s.Router = router
 }

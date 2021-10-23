@@ -8,11 +8,22 @@ import (
 )
 
 type Connection struct {
-	Conn      *net.TCPConn
-	ConnID    uint32
-	isClosed  bool
-	handleAPI ziface.HandleFunc
-	ExitCh    chan bool // 通知连接关闭
+	Conn     *net.TCPConn
+	ConnID   uint32
+	isClosed bool
+	ExitCh chan bool // 通知连接关闭
+	Router ziface.IRouter
+}
+
+func NewConnection(conn *net.TCPConn, connID uint32, router ziface.IRouter) ziface.IConnection {
+	c := &Connection{
+		Conn:     conn,
+		ConnID:   connID,
+		isClosed: false,
+		Router:   router,
+		ExitCh:   make(chan bool, 1),
+	}
+	return c
 }
 
 func (c *Connection) Start() {
@@ -46,24 +57,13 @@ func (c *Connection) Send(data []byte) error {
 	panic("implement me")
 }
 
-func NewConnection(conn *net.TCPConn, connID uint32, callbackAPI ziface.HandleFunc) ziface.IConnection {
-	c := &Connection{
-		Conn:      conn,
-		ConnID:    connID,
-		isClosed:  false,
-		handleAPI: callbackAPI,
-		ExitCh:    make(chan bool, 1),
-	}
-	return c
-}
-
 func (c *Connection) StartHandle() {
 	defer fmt.Println(c.ConnID, "stop")
 	defer c.Stop()
 	conn := c.Conn
 	for {
 		buf := make([]byte, 512)
-		cnt, err := conn.Read(buf)
+		_, err := conn.Read(buf)
 		if err == io.EOF {
 			fmt.Println(c.ConnID, "read done")
 			break
@@ -73,10 +73,13 @@ func (c *Connection) StartHandle() {
 			break
 		}
 		fmt.Println(c.ConnID, "read content", string(buf))
-		err = c.handleAPI(conn, buf[:], cnt)
-		if err != nil {
-			fmt.Println(c.ConnID, "write err", err)
-			break
+
+		req := &Request{
+			connection: c,
+			data:       buf,
 		}
+		c.Router.PreHandle(req)
+		c.Router.Handle(req)
+		c.Router.PostHandle(req)
 	}
 }
