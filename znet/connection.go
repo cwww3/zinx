@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"zinx/utils"
 	"zinx/ziface"
 )
 
@@ -11,8 +12,8 @@ type Connection struct {
 	Conn     *net.TCPConn
 	ConnID   uint32
 	isClosed bool
-	ExitCh chan bool // 通知连接关闭
-	Router ziface.IRouter
+	ExitCh   chan bool // 通知连接关闭
+	Router   ziface.IRouter
 }
 
 func NewConnection(conn *net.TCPConn, connID uint32, router ziface.IRouter) ziface.IConnection {
@@ -62,7 +63,7 @@ func (c *Connection) StartHandle() {
 	defer c.Stop()
 	conn := c.Conn
 	for {
-		buf := make([]byte, 512)
+		buf := make([]byte, utils.Config.MaxPackageSize)
 		_, err := conn.Read(buf)
 		if err == io.EOF {
 			fmt.Println(c.ConnID, "read done")
