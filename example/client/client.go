@@ -5,7 +5,7 @@ import (
 	"io"
 	"net"
 	"time"
-	"zinx/utils"
+	"zinx/znet"
 )
 
 func main() {
@@ -17,23 +17,45 @@ func main() {
 	defer conn.Close()
 	go func() {
 		for {
-			buf := make([]byte, utils.Config.MaxPackageSize)
-			_, err = conn.Read(buf)
+			var err error
+			dp := znet.NewDataPack()
+			buf := make([]byte, dp.GetHeadLen())
+			_, err = io.ReadFull(conn, buf)
 			if err == io.EOF {
-				fmt.Println("read down")
-				return
+				fmt.Println("read done")
+				break
 			}
 			if err != nil {
 				fmt.Println("read err", err)
 				break
 			}
-			fmt.Println("read content", string(buf))
+			msg, err := dp.Unpack(buf)
+			if err != nil {
+				fmt.Println("unpack err", err)
+				break
+			}
+			content := make([]byte, msg.GetLength())
+			_, err = io.ReadFull(conn, content)
+			if err != nil {
+				fmt.Println("read content err", err)
+				break
+			}
+			msg.(*znet.Message).Data = content
+			fmt.Println("read content", string(content))
+			fmt.Println("read msg", msg)
 		}
 	}()
 	for {
-		_, err = conn.Write([]byte("Hello World!"))
+		dp := znet.NewDataPack()
+		data, err := dp.Pack(znet.NewMessage(1, []byte("Hello World!")))
+		if err != nil {
+			fmt.Println("pack err", err)
+			break
+		}
+		_, err = conn.Write(data)
 		if err != nil {
 			fmt.Println("write err", err)
+			break
 		}
 		time.Sleep(time.Second * 3)
 	}

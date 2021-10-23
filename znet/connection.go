@@ -1,10 +1,10 @@
 package znet
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
-	"zinx/utils"
 	"zinx/ziface"
 )
 
@@ -54,30 +54,50 @@ func (c *Connection) RemoteAddr() net.Addr {
 	return c.Conn.RemoteAddr()
 }
 
-func (c *Connection) Send(data []byte) error {
-	panic("implement me")
+func (c *Connection) SendMsg(msgId uint32, data []byte) error {
+	if c.isClosed == true {
+		return errors.New("Connection is already closed")
+	}
+	dp := NewDataPack()
+	msg := NewMessage(msgId, data)
+	pack, err := dp.Pack(msg)
+	if err != nil {
+		return err
+	}
+	_, err = c.GetTCPConnection().Write(pack)
+	return err
 }
 
 func (c *Connection) StartHandle() {
 	defer fmt.Println(c.ConnID, "stop")
 	defer c.Stop()
-	conn := c.Conn
 	for {
-		buf := make([]byte, utils.Config.MaxPackageSize)
-		_, err := conn.Read(buf)
-		if err == io.EOF {
-			fmt.Println(c.ConnID, "read done")
-			break
-		}
+		dp := NewDataPack()
+		buf := make([]byte, dp.GetHeadLen())
+		_, err := io.ReadFull(c.GetTCPConnection(), buf)
 		if err != nil {
-			fmt.Println(c.ConnID, "read err", err)
+			fmt.Println(c.ConnID, "read head err", err)
 			break
 		}
-		fmt.Println(c.ConnID, "read content", string(buf))
+		msg, err := dp.Unpack(buf)
+		if err != nil {
+			fmt.Println("unpack err", err)
+			break
+		}
+		if msg.GetLength() > 0 {
+			data := make([]byte, msg.GetLength())
+			_, err = io.ReadFull(c.GetTCPConnection(), data)
+			if err != nil {
+				fmt.Println(c.ConnID, "read content err", err)
+				break
+			}
+			msg.SetMsgData(data)
+			fmt.Println(c.ConnID, "read content", string(data), "msgId", msg.GetMsgID())
+		}
 
 		req := &Request{
 			connection: c,
-			data:       buf,
+			msg:        msg,
 		}
 		c.Router.PreHandle(req)
 		c.Router.Handle(req)

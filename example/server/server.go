@@ -11,20 +11,17 @@ type PingRouter struct {
 }
 
 func (b *PingRouter) PreHandle(request ziface.IRequest) {
-	fmt.Println("PreHandle")
 }
 
 func (b *PingRouter) Handle(request ziface.IRequest) {
 	fmt.Println("Handle")
-	_, err := request.GetConnection().GetTCPConnection().Write(request.GetData())
+	err := request.GetConnection().SendMsg(1, []byte("Hello World!"))
 	if err != nil {
 		fmt.Println("handle err", err)
 	}
-
 }
 
 func (b *PingRouter) PostHandle(request ziface.IRequest) {
-	fmt.Println("PostHandle")
 }
 
 func main() {

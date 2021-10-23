@@ -16,7 +16,7 @@ type ServerConfig struct {
 	Name           string
 	Host           string
 	Port           int
-	MaxPackageSize int
+	MaxPackageSize uint32
 }
 
 func init() {
