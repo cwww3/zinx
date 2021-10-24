@@ -20,3 +20,4 @@ func (r *Request) GetData() []byte {
 func (r *Request) GetMsgID() uint32 {
 	return r.msg.GetMsgID()
 }
+

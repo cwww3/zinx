@@ -45,9 +45,19 @@ func main() {
 			fmt.Println("read msg", msg)
 		}
 	}()
+	cnt := 0
 	for {
 		dp := znet.NewDataPack()
-		data, err := dp.Pack(znet.NewMessage(1, []byte("Hello World!")))
+		var msgId uint32
+		var content string
+		if cnt%2 == 0 {
+			msgId = 1
+			content = "ping1 Hello World!"
+		} else {
+			msgId = 2
+			content = "ping2 Hello World!"
+		}
+		data, err := dp.Pack(znet.NewMessage(msgId, []byte(content)))
 		if err != nil {
 			fmt.Println("pack err", err)
 			break
@@ -57,6 +67,7 @@ func main() {
 			fmt.Println("write err", err)
 			break
 		}
+		cnt++
 		time.Sleep(time.Second * 3)
 	}
 }

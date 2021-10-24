@@ -10,22 +10,29 @@ type PingRouter struct {
 	znet.BaseRouter
 }
 
-func (b *PingRouter) PreHandle(request ziface.IRequest) {
+type Ping2Router struct {
+	znet.BaseRouter
 }
 
 func (b *PingRouter) Handle(request ziface.IRequest) {
-	fmt.Println("Handle")
-	err := request.GetConnection().SendMsg(1, []byte("Hello World!"))
+	fmt.Println("ping Handle")
+	err := request.GetConnection().SendMsg(request.GetMsgID(), request.GetData())
 	if err != nil {
 		fmt.Println("handle err", err)
 	}
 }
 
-func (b *PingRouter) PostHandle(request ziface.IRequest) {
+func (b *Ping2Router) Handle(request ziface.IRequest) {
+	fmt.Println("ping2 Handle")
+	err := request.GetConnection().SendMsg(request.GetMsgID(), request.GetData())
+	if err != nil {
+		fmt.Println("handle err", err)
+	}
 }
 
 func main() {
 	s := znet.NewServer()
-	s.AddRouter(new(PingRouter))
+	s.AddRouter(1, new(PingRouter))
+	s.AddRouter(2, new(Ping2Router))
 	s.Serve()
 }

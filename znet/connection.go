@@ -13,15 +13,15 @@ type Connection struct {
 	ConnID   uint32
 	isClosed bool
 	ExitCh   chan bool // 通知连接关闭
-	Router   ziface.IRouter
+	RouterManager ziface.IRouterManager
 }
 
-func NewConnection(conn *net.TCPConn, connID uint32, router ziface.IRouter) ziface.IConnection {
+func NewConnection(conn *net.TCPConn, connID uint32, routerManager ziface.IRouterManager) ziface.IConnection {
 	c := &Connection{
 		Conn:     conn,
 		ConnID:   connID,
 		isClosed: false,
-		Router:   router,
+		RouterManager:   routerManager,
 		ExitCh:   make(chan bool, 1),
 	}
 	return c
@@ -99,8 +99,6 @@ func (c *Connection) StartHandle() {
 			connection: c,
 			msg:        msg,
 		}
-		c.Router.PreHandle(req)
-		c.Router.Handle(req)
-		c.Router.PostHandle(req)
+		c.RouterManager.DoMsgHandler(req)
 	}
 }
