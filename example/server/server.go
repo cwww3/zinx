@@ -36,9 +36,15 @@ func main() {
 	s.AddRouter(2, new(Ping2Router))
 	s.SetOnConnStart(func(conn ziface.IConnection) {
 		fmt.Println(conn.GetConnID(), " conn start")
+		conn.SetProperty("cw", "zinx")
 	})
 	s.SetOnConnStop(func(conn ziface.IConnection) {
 		fmt.Println(conn.GetConnID(), " conn stop")
+		v, err := conn.GetProperty("cw")
+		if err != nil {
+			fmt.Println("get property err", err)
+		}
+		fmt.Println("get property", v)
 	})
 	s.Serve()
 }

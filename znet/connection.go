@@ -19,6 +19,8 @@ type Connection struct {
 	MsgCh         chan []byte
 	RouterManager ziface.IRouterManager
 	Once          sync.Once
+	Property      map[string]interface{}
+	sync.RWMutex
 }
 
 func NewConnection(server ziface.IServer, conn *net.TCPConn, connID uint32, routerManager ziface.IRouterManager) ziface.IConnection {
@@ -30,6 +32,7 @@ func NewConnection(server ziface.IServer, conn *net.TCPConn, connID uint32, rout
 		RouterManager: routerManager,
 		MsgCh:         make(chan []byte, 3),
 		ExitCh:        make(chan bool),
+		Property:      make(map[string]interface{}),
 	}
 	server.GetConnManager().AddConnection(c)
 	return c
@@ -137,4 +140,16 @@ func (c *Connection) StartWrite() {
 			return
 		}
 	}
+}
+
+func (c *Connection) SetProperty(key string, val interface{}) {
+	c.Property[key] = val
+}
+
+func (c *Connection) GetProperty(key string) (interface{}, error) {
+	v, ok := c.Property[key]
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("not found key %s\n", key))
+	}
+	return v, nil
 }
