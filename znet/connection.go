@@ -9,27 +9,30 @@ import (
 )
 
 type Connection struct {
-	Conn     *net.TCPConn
-	ConnID   uint32
-	isClosed bool
-	ExitCh   chan bool // 通知连接关闭
+	Conn          *net.TCPConn
+	ConnID        uint32
+	isClosed      bool
+	ExitCh        chan bool // 通知连接关闭
+	MsgCh         chan []byte
 	RouterManager ziface.IRouterManager
 }
 
 func NewConnection(conn *net.TCPConn, connID uint32, routerManager ziface.IRouterManager) ziface.IConnection {
 	c := &Connection{
-		Conn:     conn,
-		ConnID:   connID,
-		isClosed: false,
-		RouterManager:   routerManager,
-		ExitCh:   make(chan bool, 1),
+		Conn:          conn,
+		ConnID:        connID,
+		isClosed:      false,
+		RouterManager: routerManager,
+		MsgCh:         make(chan []byte, 3),
+		ExitCh:        make(chan bool),
 	}
 	return c
 }
 
 func (c *Connection) Start() {
 	fmt.Println("conn start id", c.ConnID)
-	c.StartHandle()
+	go c.StartRead()
+	go c.StartWrite()
 }
 
 func (c *Connection) Stop() {
@@ -40,6 +43,7 @@ func (c *Connection) Stop() {
 	c.isClosed = true
 	c.Conn.Close()
 	close(c.ExitCh)
+	close(c.MsgCh)
 }
 
 func (c *Connection) GetTCPConnection() *net.TCPConn {
@@ -64,12 +68,12 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 	if err != nil {
 		return err
 	}
-	_, err = c.GetTCPConnection().Write(pack)
+	c.MsgCh <- pack
 	return err
 }
 
-func (c *Connection) StartHandle() {
-	defer fmt.Println(c.ConnID, "stop")
+func (c *Connection) StartRead() {
+	defer fmt.Println(c.ConnID, "read stop")
 	defer c.Stop()
 	for {
 		dp := NewDataPack()
@@ -100,5 +104,21 @@ func (c *Connection) StartHandle() {
 			msg:        msg,
 		}
 		c.RouterManager.DoMsgHandler(req)
+	}
+}
+
+func (c *Connection) StartWrite() {
+	defer fmt.Println(c.ConnID, "write stop")
+	for {
+		select {
+		case data := <-c.MsgCh:
+			_, err := c.GetTCPConnection().Write(data)
+			if err != nil {
+				fmt.Println(c.ConnID, "write err", err)
+				return
+			}
+		case <-c.ExitCh:
+			return
+		}
 	}
 }
