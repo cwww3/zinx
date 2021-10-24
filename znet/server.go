@@ -8,11 +8,10 @@ import (
 )
 
 type Server struct {
-	Name      string
-	IPVersion string
-	IP        string
-	Port      int
-	//Router    ziface.IRouter
+	Name          string
+	IPVersion     string
+	IP            string
+	Port          int
 	RouterManager ziface.IRouterManager
 }
 
@@ -40,6 +39,7 @@ func (s *Server) Start() {
 		return
 	}
 	fmt.Printf("%s服务已启动正在监听%s:%d\n", s.Name, s.IP, s.Port)
+	s.RouterManager.StartWorkers()
 	var connID uint32 = 1
 	for {
 		conn, err := listener.AcceptTCP()
@@ -47,9 +47,8 @@ func (s *Server) Start() {
 			fmt.Println("accept err", err)
 			continue
 		}
-		connection := NewConnection(conn, connID, s.RouterManager)
+		NewConnection(conn, connID, s.RouterManager).Start()
 		connID++
-		go connection.Start()
 	}
 }
 

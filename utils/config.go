@@ -13,19 +13,23 @@ type GlobalConfig struct {
 var Config *GlobalConfig
 
 type ServerConfig struct {
-	Name           string
-	Host           string
-	Port           int
-	MaxPackageSize uint32
+	Name            string
+	Host            string
+	Port            int
+	MaxPackageSize  uint32
+	WorkerSize      int
+	RequestPoolSize uint32
 }
 
 func init() {
 	Config = &GlobalConfig{
 		ServerConfig{
-			Name:           "Zinx",
-			Host:           "0.0.0.0",
-			Port:           8999,
-			MaxPackageSize: 512,
+			Name:            "Zinx",
+			Host:            "0.0.0.0",
+			Port:            8999,
+			MaxPackageSize:  512,
+			RequestPoolSize: 100,
+			WorkerSize:      10,
 		},
 	}
 	Config.Reload()

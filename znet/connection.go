@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"zinx/utils"
 	"zinx/ziface"
 )
 
@@ -103,7 +104,11 @@ func (c *Connection) StartRead() {
 			connection: c,
 			msg:        msg,
 		}
-		c.RouterManager.DoMsgHandler(req)
+		if utils.Config.WorkerSize > 0 {
+			c.RouterManager.SendRequest(req)
+		} else {
+			go c.RouterManager.DoMsgHandler(req)
+		}
 	}
 }
 
