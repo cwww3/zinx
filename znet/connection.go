@@ -5,21 +5,25 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 	"zinx/utils"
 	"zinx/ziface"
 )
 
 type Connection struct {
+	Server        ziface.IServer
 	Conn          *net.TCPConn
 	ConnID        uint32
 	isClosed      bool
 	ExitCh        chan bool // 通知连接关闭
 	MsgCh         chan []byte
 	RouterManager ziface.IRouterManager
+	Once          sync.Once
 }
 
-func NewConnection(conn *net.TCPConn, connID uint32, routerManager ziface.IRouterManager) ziface.IConnection {
+func NewConnection(server ziface.IServer, conn *net.TCPConn, connID uint32, routerManager ziface.IRouterManager) ziface.IConnection {
 	c := &Connection{
+		Server:        server,
 		Conn:          conn,
 		ConnID:        connID,
 		isClosed:      false,
@@ -27,6 +31,7 @@ func NewConnection(conn *net.TCPConn, connID uint32, routerManager ziface.IRoute
 		MsgCh:         make(chan []byte, 3),
 		ExitCh:        make(chan bool),
 	}
+	server.GetConnManager().AddConnection(c)
 	return c
 }
 
@@ -34,6 +39,8 @@ func (c *Connection) Start() {
 	fmt.Println("conn start id", c.ConnID)
 	go c.StartRead()
 	go c.StartWrite()
+
+	c.Server.CallOnConnStart(c)
 }
 
 func (c *Connection) Stop() {
@@ -41,10 +48,14 @@ func (c *Connection) Stop() {
 		fmt.Println("conn", c.ConnID, "has already closed")
 		return
 	}
-	c.isClosed = true
-	c.Conn.Close()
-	close(c.ExitCh)
-	close(c.MsgCh)
+	c.Once.Do(func() {
+		c.isClosed = true
+		c.Server.CallOnConnStop(c)
+		c.Conn.Close()
+		c.Server.GetConnManager().RemoveConnection(c)
+		close(c.ExitCh)
+		close(c.MsgCh)
+	})
 }
 
 func (c *Connection) GetTCPConnection() *net.TCPConn {

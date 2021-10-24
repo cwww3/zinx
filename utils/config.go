@@ -19,6 +19,7 @@ type ServerConfig struct {
 	MaxPackageSize  uint32
 	WorkerSize      int
 	RequestPoolSize uint32
+	MaxConnSize     int
 }
 
 func init() {
@@ -30,6 +31,7 @@ func init() {
 			MaxPackageSize:  512,
 			RequestPoolSize: 100,
 			WorkerSize:      10,
+			MaxConnSize:     3,
 		},
 	}
 	Config.Reload()

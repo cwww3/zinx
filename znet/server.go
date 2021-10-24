@@ -13,6 +13,13 @@ type Server struct {
 	IP            string
 	Port          int
 	RouterManager ziface.IRouterManager
+	ConnManager   ziface.IConnManager
+	OnConnStart   func(conn ziface.IConnection)
+	OnConnStop    func(conn ziface.IConnection)
+}
+
+func (s *Server) GetConnManager() ziface.IConnManager {
+	return s.ConnManager
 }
 
 func NewServer() ziface.IServer {
@@ -22,6 +29,7 @@ func NewServer() ziface.IServer {
 		IP:            utils.Config.Host,
 		Port:          utils.Config.Port,
 		RouterManager: NewRouterManager(),
+		ConnManager:   NewConnManager(),
 	}
 	return &s
 }
@@ -47,13 +55,21 @@ func (s *Server) Start() {
 			fmt.Println("accept err", err)
 			continue
 		}
-		NewConnection(conn, connID, s.RouterManager).Start()
+		if s.ConnManager.Len() >= utils.Config.MaxConnSize {
+			fmt.Println("too many conn ")
+			conn.Close()
+			continue
+		}
+		connection := NewConnection(s, conn, connID, s.RouterManager)
+		connection.Start()
+
 		connID++
 	}
 }
 
 func (s *Server) Stop() {
-
+	fmt.Println("server stop")
+	s.ConnManager.ClearConnection()
 }
 
 func (s *Server) Serve() {
@@ -63,4 +79,24 @@ func (s *Server) Serve() {
 
 func (s *Server) AddRouter(msgId uint32, routerManager ziface.IRouter) {
 	s.RouterManager.AddRouter(msgId, routerManager)
+}
+
+func (s *Server) SetOnConnStart(f func(conn ziface.IConnection)) {
+	s.OnConnStart = f
+}
+
+func (s *Server) SetOnConnStop(f func(conn ziface.IConnection)) {
+	s.OnConnStop = f
+}
+
+func (s *Server) CallOnConnStart(conn ziface.IConnection) {
+	if s.OnConnStart != nil {
+		s.OnConnStart(conn)
+	}
+}
+
+func (s *Server) CallOnConnStop(conn ziface.IConnection) {
+	if s.OnConnStop != nil {
+		s.OnConnStop(conn)
+	}
 }

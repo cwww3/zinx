@@ -34,5 +34,11 @@ func main() {
 	s := znet.NewServer()
 	s.AddRouter(1, new(PingRouter))
 	s.AddRouter(2, new(Ping2Router))
+	s.SetOnConnStart(func(conn ziface.IConnection) {
+		fmt.Println(conn.GetConnID(), " conn start")
+	})
+	s.SetOnConnStop(func(conn ziface.IConnection) {
+		fmt.Println(conn.GetConnID(), " conn stop")
+	})
 	s.Serve()
 }
