@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"zinx/ziface"
-	"zinx/znet"
+	"github.com/cwww3/zinx/ziface"
+	"github.com/cwww3/zinx/znet"
 )
 
 type PingRouter struct {

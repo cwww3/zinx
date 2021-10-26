@@ -2,8 +2,8 @@ package znet
 
 import (
 	"fmt"
-	"zinx/utils"
-	"zinx/ziface"
+	"github.com/cwww3/zinx/utils"
+	"github.com/cwww3/zinx/ziface"
 )
 
 var cnt int

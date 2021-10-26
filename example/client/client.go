@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/cwww3/zinx/znet"
 	"io"
 	"net"
 	"time"
-	"zinx/znet"
 )
 
 func main() {
